@@ -12,6 +12,9 @@ const notion = new Client({
 });
 
 // fetch pages from quote database
+// since node.js version v14.8 we can use top level await in ES Modules
+// https://www.stefanjudis.com/today-i-learned/top-level-await-is-available-in-node-js-modules/
+// I set the type in package.json to module and I believe you did too.
 const { results } = await notion.databases.query({
   database_id: "741941b8-086d-4b45-a404-677f50fe67a3",
 });
