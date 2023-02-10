@@ -1,38 +1,40 @@
-require("dotenv").config();
-const { transporter } = require("./utils/transporter");
-const mjml2html = require("mjml");
+import * as dotenv from "dotenv";
+dotenv.config();
 
-const { html } = mjml2html(`
-<mjml>
-    <mj-body>
-    <mj-section background-color="#fafafa">
-    <mj-column width="400px">
+import nodemailer from "nodemailer";
+import { htmlToText } from "nodemailer-html-to-text";
+import { Client } from "@notionhq/client";
 
-      <mj-text font-style="italic"
-               font-size="20px"
-               font-family="Helvetica Neue"
-               color="#626262">My Awesome Text</mj-text>
+const notion = new Client({
+  auth: process.env.NOTION_TOKEN,
+});
 
-        <mj-text color="#525252">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin rutrum enim eget magna efficitur, eu semper augue semper. Aliquam erat volutpat. Cras id dui lectus. Vestibulum sed finibus lectus, sit amet suscipit nibh. Proin nec commodo purus. Sed eget nulla elit. Nulla aliquet mollis faucibus.
-      </mj-text>
+const { results } = await notion.databases.query({
+  database_id: "741941b8-086d-4b45-a404-677f50fe67a3",
+});
 
-        <mj-button background-color="#F45E43"
-                 href="#">Learn more</mj-button>
+const quotePage = await notion.pages.retrieve({ page_id: results[0].id });
+const quoteText = quotePage.properties.Quote.title[0].text.content;
+const quoteAuthor = quotePage.properties.By.rich_text[0].text.content;
 
-    </mj-column>
-    </mj-section>
-    </mjml>
-    </mj-body>
-`);
+const mailContent = `<p><i>${quoteText}</i> -${quoteAuthor}</p>`;
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
+
+transporter.use("compile", htmlToText());
 
 transporter
   .sendMail({
-    from: "Ноде Майлер <foobar@example.com>", // sender address
-    to: "piotreksmolinski04@gmail.com", // list of receivers
-    subject: "New exiting news from me", // Subject line
-    // text: "There is a new article. It's about sending emails, check it out!", // plain text body
-    html: html,
+    to: "piotreksmolinski04@gmail.com",
+    subject: "Quote of the day",
+    html: mailContent,
   })
   .then((info) => {
     console.log({ info });
